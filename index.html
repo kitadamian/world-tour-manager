@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>World Tour Manager: EduRock</title>
+    <meta name="description" content="Gra przeglądarkowa o zarządzaniu zespołem i graniu koncertów na całym świecie.">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary: #bb86fc;
+            --secondary: #03dac6;
+            --accent: #cf6679;
+            --text: #ffffff;
+            --text-muted: #b0b0b0;
+            --success: #4caf50;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header & Stats */
+        header {
+            background: linear-gradient(180deg, #2c2c2c 0%, #1a1a1a 100%);
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .icon { font-style: normal; }
+
+        /* Main Layout */
+        main {
+            flex: 1;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 80px; /* Space for footer */
+        }
+
+        /* Sections (Views) */
+        section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards & Lists */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            border-left: 4px solid var(--primary);
+        }
+
+        .venue-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid #333;
+            transition: transform 0.2s;
+        }
+
+        .venue-card.locked {
+            border-left-color: var(--text-muted);
+            opacity: 0.7;
+            filter: grayscale(1);
+        }
+
+        .venue-card.unlocked {
+            border-left-color: var(--secondary);
+        }
+
+        .venue-card:hover {
+            transform: scale(1.02);
+        }
+
+        .venue-info h3 { margin: 0 0 5px 0; color: var(--secondary); }
+        .venue-info p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+
+        /* Buttons */
+        button {
+            background-color: var(--primary);
+            color: #000;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(187, 134, 252, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        button.accent {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        button:disabled {
+            background-color: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Gameplay View */
+        .concert-stage {
+            text-align: center;
+            position: relative;
+        }
+
+        .visualizer {
+            height: 150px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: #000;
+            border-radius: 8px;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .bar {
+            width: 10px;
+            background: linear-gradient(to top, var(--primary), var(--secondary));
+            height: 10%;
+            border-radius: 2px 2px 0 0;
+            transition: height 0.1s ease;
+        }
+
+        .energy-container {
+            margin: 30px 0;
+        }
+
+        .energy-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .progress-bar-bg {
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #555;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            transform-origin: left;
+            transition: width 0.1s linear;
+        }
+
+        .target-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 20%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 2px dashed white;
+            border-right: 2px dashed white;
+            z-index: 2;
+            left: 40%; /* Center 20% zone */
+        }
+
+        .tap-area {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--secondary) 0%, #004d40 100%);
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            border: 4px solid white;
+            box-shadow: 0 0 20px var(--secondary);
+            cursor: pointer;
+            touch-action: manipulation;
+            animation: pulse 1.5s infinite;
+        }
+
+        .tap-area:active {
+            transform: scale(0.95);
+            background: var(--accent);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(3, 218, 198, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(3, 218, 198, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(3, 218, 198, 0); }
+        }
+
+        /* Shop */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .upgrade-card {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            text-align: center;
+        }
+
+        .upgrade-cost {
+            color: var(--accent);
+            font-weight: bold;
+            display: block;
+            margin: 10px 0;
+        }
+
+        /* Modals & Overlays */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 30px rgba(187, 134, 252, 0.2);
+        }
+
+        .fact-box {
+            background: #252525;
+            padding: 15px;
+            border-left: 3px solid var(--secondary);
+            margin: 20px 0;
+            text-align: left;
+            font-style: italic;
+        }
+
+        .fact-title {
+            color: var(--secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        /* Navigation Tabs (Mobile Friendly) */
+        .nav-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid #333;
+            z-index: 90;
+        }
+
+        .nav-tab {
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            background: rgba(187, 134, 252, 0.1);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #0f0f0f;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid #333;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Utility */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .mt-2 { margin-top: 20px; }
+        .success-text { color: var(--success); }
+        .fail-text { color: var(--accent); }
+
+        /* Responsive tweaks */
+        @media (min-width: 768px) {
+            .nav-tabs {
+                position: relative;
+                justify-content: center;
+                gap: 20px;
+                margin-bottom: 20px;
+                border: none;
+                background: transparent;
+            }
+            .nav-tab {
+                font-size: 1rem;
+                background: var(--card-bg);
+                border: 1px solid #333;
+            }
+            body { padding-bottom: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>🎸 World Tour Manager</h1>
+            <div class="stats-bar">
+                <div class="stat-item" title="Budżet">
+                    <span class="icon">💵</span>
+                    <span id="money-display">1000</span>
+                </div>
+                <div class="stat-item" title="Fani">
+                    <span class="icon">❤️</span>
+                    <span id="fans-display">50</span>
+                </div>
+                <div class="stat-item" title="Poziom Zespołu">
+                    <span class="icon">⭐</span>
+                    <span id="level-display">1</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="showView('map-view')">🗺️ Mapa</button>
+        <button class="nav-tab" onclick="showView('shop-view')">🛒 Sklep</button>
+        <button class="nav-tab" onclick="showView('band-view')">📊 Zespół</button>
+    </nav>
+
+    <main>
+        <!-- VIEW: MAP / VENUES -->
+        <section id="map-view" class="active">
+            <h2 class="text-center">Wybierz Koncert</h2>
+            <div id="venues-list">
+                <!-- Venue cards will be injected here via JS -->
+            </div>
+        </section>
+
+        <!-- VIEW: CONCERT GAMEPLAY -->
+        <section id="concert-view">
+            <div class="concert-stage">
+                <h2 id="concert-venue-name">Koncert</h2>
+                <p id="concert-timer">Czas: 30s</p>
+                
+                <div class="visualizer" id="visualizer">
+                    <!-- Bars generated by JS -->
+                </div>
+
+                <div class="energy-container">
+                    <div class="energy-label">
+                        <span>Energia Publiczności</span>
+                        <span id="energy-percent">100%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="target-zone"></div>
+                        <div class="progress-bar-fill" id="energy-bar"></div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #888; margin-top: 5px;">Trzymaj słupek w białej strefie!</p>
+                </div>
+
+                <div class="tap-area" id="play-btn">
+                    GRAJ!
+                </div>
+                
+                <button class="secondary mt-2" onclick="abandonConcert()">Poddaj się</button>
+            </div>
+        </section>
+
+        <!-- VIEW: SHOP -->
+        <section id="shop-view">
+            <h2>Sklep Muzyczny</h2>
+            <p>Inwestuj w zespół, aby zarabiać więcej.</p>
+            <div class="shop-grid" id="shop-list">
+                <!-- Shop items injected via JS -->
+            </div>
+        </section>
+
+        <!-- VIEW: BAND STATS -->
+        <section id="band-view">
+            <div class="card text-center">
+                <h2>Twój Zespół</h2>
+                <img src="https://picsum.photos/seed/band/200/200" alt="Zespół" style="border-radius: 50%; margin: 10px 0; border: 3px solid var(--primary);">
+                <h3>The Code Rockers</h3>
+                <p>Poziom: <span id="band-level-detail">1</span></p>
+                <p>Umiejętności: <span id="skill-detail">1</span></p>
+                <p>Promocja: <span id="promo-detail">1</span></p>
+            </div>
+            <div class="card">
+                <h3>Statystyki</h3>
+                <p>Całkowity zarobek: $<span id="total-earned">0</span></p>
+                <p>Zagrane koncerty: <span id="concerts-played">0</span></p>
+            </div>
+            <div class="text-center">
+                <button onclick="resetGame()" class="accent">Resetuj Grę</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: RESULT -->
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal-content">
+            <h2 id="result-title">Koncert Zakończony!</h2>
+            <div class="result-stats">
+                <p>Zarobek: <span class="success-text" id="result-money">+$0</span></p>
+                <p>Nowi Fani: <span class="success-text" id="result-fans">+0</span></p>
+            </div>
+            
+            <!-- Educational Content -->
+            <div class="fact-box">
+                <span class="fact-title">Czy wiesz że?</span>
+                <p id="result-fact">Tutaj pojawi się ciekawostka o miejscu.</p>
+            </div>
+
+            <button onclick="closeModal()">Świetnie!</button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2023 World Tour Manager</p>
+        <p>Autor: <a href="https://linktr.ee/kitadamian" target="_blank">Damian Kita</a></p>
+    </footer>
+
+    <script>
+        /**
+         * GAME DATA & STATE
+         */
+        const gameState = {
+            money: 500,
+            fans: 100,
+            totalEarned: 0,
+            concertsPlayed: 0,
+            level: 1,
+            skillLevel: 1,  // Multiplier for earning
+            promoLevel: 1,  // Slows energy decay
+            venueId: 0,
+            audioEnabled: true
+        };
+
+        const venues = [
+            { 
+                id: 0, 
+                name: "Garage w Warszawie", 
+                location: "Polska", 
+                cost: 0, 
+                rewardBase: 200, 
+                difficulty: 1.0, // Decay rate multiplier
+                fact: "Warszawa jest domem dla jednego z najstarszych klubów jazzowych w Europie - 'Akwarium'."
+            },
+            { 
+                id: 1, 
+                name: "Klub Blue Note", 
+                location: "Kraków, Polska", 
+                cost: 1000, 
+                rewardBase: 600, 
+                difficulty: 1.2,
+                fact: "Kraków słynie z Festiwalu Muzyki Filmowej, który przyciąga kompozytorów z całego świata."
+            },
+            { 
+                id: 2, 
+                name: "The Cavern Club", 
+                location: "Liverpool, UK", 
+                cost: 3000, 
+                rewardBase: 1500, 
+                difficulty: 1.5,
+                fact: "To tutaj zaczęła się legenda The Beatles. Zespół zagrał tu 292 razy w latach 1961-1963."
+            },
+            { 
+                id: 3, 
+                name: "Olympia Music Hall", 
+                location: "Paryż, Francja", 
+                cost: 8000, 
+                rewardBase: 4000, 
+                difficulty: 1.8,
+                fact: "Olympia to najstarszy koncertowy sala w Paryżu, otwarta w 1888 roku."
+            },
+            { 
+                id: 4, 
+                name: "Sydney Opera House", 
+                location: "Sydney, Australia", 
+                cost: 20000, 
+                rewardBase: 10000, 
+                difficulty: 2.2,
+                fact: "Słynne dachy Opery Sydney pokryte jest ponad milionem płyt ceramicznych w kolorze białym i kremowym."
+            },
+            { 
+                id: 5, 
+                name: "Madison Square Garden", 
+                location: "Nowy Jork, USA", 
+                cost: 50000, 
+                rewardBase: 25000, 
+                difficulty: 2.5,
+                fact: "To arena, która nigdy nie śpi. Gościła nie tylko muzyków, ale i papieży, polityków oraz walki bokserskie."
+            },
+            { 
+                id: 6, 
+                name: "Estádio do Maracanã", 
+                location: "Rio de Janeiro, Brazylia", 
+                cost: 100000, 
+                rewardBase: 60000, 
+                difficulty: 3.0,
+                fact: "Ten gigantyczny stadion pomieścił prawie 200 tysięcy widzów podczas finału MŚ 1950."
+            },
+            { 
+                id: 7, 
+                name: "Glastonbury Festival", 
+                location: "Wielka Brytania", 
+                cost: 250000, 
+                rewardBase: 150000, 
+                difficulty: 3.5,
+                fact: "Największy festiwal na świeżym powietrzu na świecie, znany ze sztuki błotnej i ekologicznych wartości."
+            }
+        ];
+
+        const upgrades = [
+            { id: 'skill', name: 'Lepsze Instrumenty', desc: 'Zwiększa zarobki.', baseCost: 500, multiplier: 1.5, type: 'skill' },
+            { id: 'promo', name: 'Agencja PR', desc: 'Publiczność wolniej traci zainteresowanie.', baseCost: 400, multiplier: 1.2, type: 'promo' }
+        ];
+
+        // Gameplay vars
+        let concertInterval;
+        let visualizerInterval;
+        let energy = 100;
+        let timeLeft = 30;
+        let currentVenue = null;
+
+        /**
+         * AUDIO SYSTEM (Web Audio API)
+         * Generates sounds without external files
+         */
+        const AudioSys = {
+            ctx: null,
+            init: function() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playTone: function(freq, type, duration, vol=0.1) {
+                if (!gameState.audioEnabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playClick: function() {
+                // High pitch blip
+                this.playTone(800, 'sine', 0.1, 0.1);
+                this.playTone(1200, 'triangle', 0.05, 0.05);
+            },
+            playMusic: function() {
+                // Simple bassline loop (mock)
+                if (!this.ctx) this.init();
+                // In a real scenario we'd sequence notes. For simplicity in this constrained env,
+                // we rely on SFX to save complexity, but let's start a drone for atmosphere.
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.frequency.value = 55; // A1
+                gain.gain.value = 0.02;
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                // Keep reference to stop later if needed, but letting it drone as "atmosphere"
+            }
+        };
+
+        /**
+         * UI UPDATES
+         */
+        function updateUI() {
+            document.getElementById('money-display').textContent = Math.floor(gameState.money);
+            document.getElementById('fans-display').textContent = Math.floor(gameState.fans);
+            document.getElementById('level-display').textContent = gameState.level;
+            
+            document.getElementById('band-level-detail').textContent = gameState.level;
+            document.getElementById('skill-detail').textContent = gameState.skillLevel;
+            document.getElementById('promo-detail').textContent = gameState.promoLevel;
+            document.getElementById('total-earned').textContent = Math.floor(gameState.totalEarned);
+            document.getElementById('concerts-played').textContent = gameState.concertsPlayed;
+
+            renderVenues();
+            renderShop();
+        }
+
+        function showView(viewId) {
+            // Stop any ongoing logic if leaving concert
+            if (viewId !== 'concert-view' && concertInterval) {
+                abandonConcert();
+            }
+
+            document.querySelectorAll('main section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            // Find button that calls this view (simple match)
+            const btns = document.querySelectorAll('.nav-tab');
+            if(viewId === 'map-view') btns[0].classList.add('active');
+            if(viewId === 'shop-view') btns[1].classList.add('active');
+            if(viewId === 'band-view') btns[2].classList.add('active');
+        }
+
+        function renderVenues() {
+            const list = document.getElementById('venues-list');
+            list.innerHTML = '';
+
+            venues.forEach(venue => {
+                const isLocked = gameState.money < venue.cost && venue.id !== 0;
+                // Also unlock sequentially? Let's say you can play any you can afford, 
+                // but id 0 is always free.
+                
+                const div = document.createElement('div');
+                div.className = `card venue-card ${isLocked ? 'locked' : 'unlocked'}`;
+                div.innerHTML = `
+                    <div class="venue-info">
+                        <h3>${venue.name}</h3>
+                        <p>📍 ${venue.location}</p>
+                        <p>💰 Potencjał: $${venue.rewardBase}</p>
+                        ${venue.id > 0 ? `<p style="color:var(--accent)">Koszt wejścia: $${venue.cost}</p>` : ''}
+                    </div>
+                    <button 
+                        onclick="startConcert(${venue.id})" 
+                        ${isLocked ? 'disabled' : ''}>
+                        ${venue.id === 0 ? 'Graj' : (isLocked ? 'Zablokowane' : 'Opłać i Graj')}
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renderShop() {
+            const list = document.getElementById('shop-list');
+            list.innerHTML = '';
+
+            upgrades.forEach((u, index) => {
+                const currentLevel = u.type === 'skill' ? gameState.skillLevel : gameState.promoLevel;
+                const cost = Math.floor(u.baseCost * Math.pow(u.multiplier, currentLevel - 1));
+                
+                const div = document.createElement('div');
+                div.className = 'upgrade-card';
+                div.innerHTML = `
+                    <h3>${u.name} (Poziom ${currentLevel})</h3>
+                    <p>${u.desc}</p>
+                    <span class="upgrade-cost">Cena: $${cost}</span>
+                    <button onclick="buyUpgrade('${u.type}')" ${gameState.money < cost ? 'disabled' : ''}>
+                        Kup
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        /**
+         * GAME LOGIC
+         */
+        function buyUpgrade(type) {
+            const u = upgrades.find(x => x.type === type);
+            const currentLevel = type === 'skill' ? gameState.skillLevel : gameState.promoLevel;
+            const cost = Math.floor(u.baseCost * Math.pow(u.multiplier, currentLevel - 1));
+
+            if (gameState.money >= cost) {
+                gameState.money -= cost;
+                if (type === 'skill') gameState.skillLevel++;
+                if (type === 'promo') gameState.promoLevel++;
+                
+                AudioSys.playClick();
+                updateUI();
+            }
+        }
+
+        function startConcert(id) {
+            const venue = venues[id];
+            
+            // Pay cost if not first venue
+            if (id > 0) {
+                if (gameState.money < venue.cost) return;
+                gameState.money -= venue.cost;
+            }
+
+            currentVenue = venue;
+            energy = 100;
+            timeLeft = 30; // 30 seconds concert
+            
+            // Setup UI
+            document.getElementById('concert-venue-name').textContent = `Gramy w: ${venue.name}`;
+            document.getElementById('concert-timer').textContent = `Czas: ${timeLeft}s`;
+            showView('concert-view');
+            updateUI();
+
+            // Start Audio Context if needed (browser policy requires user interaction)
+            AudioSys.init();
+            
+            // Start Loops
+            startGameLoop();
+            startVisualizer();
+        }
+
+        function startGameLoop() {
+            // Decay energy based on difficulty vs promo level
+            // Difficulty increases decay, Promo decreases it
+            const decayRate = (0.5 * currentVenue.difficulty) / gameState.promoLevel;
+
+            concertInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('concert-timer').textContent = `Czas: ${timeLeft}s`;
+
+                // Decay
+                energy -= decayRate * 5; // ticks happen fast
+                if (energy < 0) energy = 0;
+
+                updateEnergyBar();
+
+                if (timeLeft <= 0) {
+                    endConcert();
+                }
+            }, 1000); // Logic tick every second? No, we need smoother for bar.
+
+            // Faster loop for smooth bar movement (60fps visual)
+            // Logic handled in tap event, decay in separate interval
+        }
+
+        // A separate loop for smooth energy decay
+        let decayLoop;
+        function startEnergyDecay() {
+            const decayRate = (0.8 * currentVenue.difficulty) / (1 + (gameState.promoLevel * 0.2));
+            
+            decayLoop = setInterval(() => {
+                energy -= decayRate;
+                if (energy < 0) energy = 0;
+                updateEnergyBar();
+            }, 50); // 20 times a second
+        }
+
+        function updateEnergyBar() {
+            const bar = document.getElementById('energy-bar');
+            const pct = document.getElementById('energy-percent');
+            
+            bar.style.width = `${energy}%`;
+            pct.textContent = `${Math.floor(energy)}%`;
+
+            // Color change based on danger
+            if (energy > 80) bar.style.background = 'linear-gradient(90deg, #bb86fc, #03dac6)'; // Good
+            else if (energy > 30) bar.style.background = '#ffeb3b'; // Okay
+            else bar.style.background = '#cf6679'; // Bad
+        }
+
+        // Player Interaction
+        const playBtn = document.getElementById('play-btn');
+        playBtn.addEventListener('mousedown', playNote);
+        playBtn.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(); });
+
+        function playNote() {
+            AudioSys.playClick();
+            
+            // Add energy
+            const addAmount = 3 * (gameState.skillLevel * 0.5 + 1); 
+            energy += addAmount;
+            if (energy > 100) energy = 100;
+            updateEnergyBar();
+        }
+
+        function startVisualizer() {
+            const container = document.getElementById('visualizer');
+            container.innerHTML = '';
+            // Create 15 bars
+            for(let i=0; i<15; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                container.appendChild(bar);
+            }
+
+            startEnergyDecay();
+
+            visualizerInterval = setInterval(() => {
+                const bars = document.querySelectorAll('.bar');
+                bars.forEach(bar => {
+                    // Random height based on "energy" level roughly
+                    let h = Math.random() * 80 + (energy / 5); 
+                    if(h > 100) h = 100;
+                    bar.style.height = `${h}%`;
+                });
+            }, 100);
+        }
+
+        function abandonConcert() {
+            clearInterval(concertInterval);
+            clearInterval(decayLoop);
+            clearInterval(visualizerInterval);
+            showView('map-view');
+        }
+
+        function endConcert() {
+            clearInterval(concertInterval);
+            clearInterval(decayLoop);
+            clearInterval(visualizerInterval);
+
+            // Calculate Score
+            // Average energy kept? Simplified: check current energy, 
+            // but realistically we should track "time in green zone".
+            // Let's simplify: Final Energy * Difficulty * Skill
+            const performanceMultiplier = (energy / 100);
+            
+            let moneyEarned = Math.floor(currentVenue.rewardBase * performanceMultiplier * gameState.skillLevel);
+            let fansEarned = Math.floor((currentVenue.rewardBase / 20) * performanceMultiplier);
+
+            // Bonus for high energy
+            if (energy > 90) {
+                moneyEarned *= 1.5;
+                fansEarned *= 1.5;
+            }
+
+            // Apply results
+            gameState.money += moneyEarned;
+            gameState.fans += fansEarned;
+            gameState.totalEarned += moneyEarned;
+            gameState.concertsPlayed++;
+            
+            // Level up check
+            if (gameState.concertsPlayed % 5 === 0) {
+                gameState.level++;
+                alert("Poziom Zespołu wzrósł!"); // Or a toast
+            }
+
+            // Show Modal
+            document.getElementById('result-money').textContent = `+$${moneyEarned}`;
+            document.getElementById('result-fans').textContent = `+${fansEarned}`;
+            document.getElementById('result-fact').textContent = currentVenue.fact;
+            document.getElementById('result-modal').classList.add('open');
+
+            updateUI();
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').classList.remove('open');
+            showView('map-view');
+        }
+
+        function resetGame() {
+            if(confirm("Czy na pewno chcesz zresetować postępy?")) {
+                gameState.money = 500;
+                gameState.fans = 100;
+                gameState.totalEarned = 0;
+                gameState.concertsPlayed = 0;
+                gameState.level = 1;
+                gameState.skillLevel = 1;
+                gameState.promoLevel = 1;
+                updateUI();
+                showView('map-view');
+            }
+        }
+
+        // Init
+        window.onload = function() {
+            updateUI();
+            // Create background ambient drone on first interaction would be better, 
+            // but strictly following constraints, we initialize AudioSys on first click.
+        };
+
+    </script>
+</body>
+</html>
